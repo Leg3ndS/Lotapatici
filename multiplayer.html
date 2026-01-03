@@ -1,49 +1,19 @@
-
 <!DOCTYPE html>
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Multiplayer</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
 <h2>Multiplayer</h2>
-
-<div id="choice">
-<button onclick="showHost()">Crea stanza (Host)</button>
-<button onclick="showJoin()">Accedi a stanza</button>
+<div>
+<input id="roomInput" placeholder="Codice stanza">
+<button id="createBtn">Crea stanza</button>
+<button id="joinBtn">Entra stanza</button>
+<button id="startBtn">Avvia partita</button>
 </div>
-
-<div id="host" class="hidden">
-<h3>Crea stanza</h3>
-<input id="hostName" placeholder="Nome">
-<input id="credits" type="number" placeholder="Crediti iniziali">
-<input id="ante" type="number" placeholder="Ante">
-<input id="turnTime" type="number" placeholder="Tempo turno (sec)">
-<button onclick="createRoom()">Crea stanza</button>
-</div>
-
-<div id="join" class="hidden">
-<h3>Accedi a stanza</h3>
-<input id="joinName" placeholder="Nome">
-<input id="code" placeholder="Codice stanza">
-<button onclick="joinRoom()">Entra</button>
-</div>
-
-<h3 id="roomLabel"></h3>
-<ul id="players"></ul>
-
-<button id="readyBtn" class="hidden" onclick="ready()">PRONTO</button>
-<button id="startBtn" class="hidden" onclick="startGame()">AVVIA PARTITA</button>
-
-<div id="game" class="hidden">
-<h3>Le tue carte</h3>
-<div id="hand"></div>
-<h3 id="turnInfo"></h3>
-<p id="timer"></p>
-</div>
+<div id="cards"></div>
 
 <script type="module" src="multiplayer.js"></script>
 </body>

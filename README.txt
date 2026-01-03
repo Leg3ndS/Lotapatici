@@ -1,0 +1,1 @@
+Rebuild totale stabile con Firebase Auth anonimo.
