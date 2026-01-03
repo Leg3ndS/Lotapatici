@@ -1,52 +1,41 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Lotapatici - CPU</title>
+  <meta charset="UTF-8">
+  <title>Lotapatici – CPU</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header style="text-align:center;margin-top:18px">
-    <h1>Lotapatici – CPU</h1>
-  </header>
 
-  <main style="text-align:center">
-    <!-- LOBBY -->
-    <section id="lobby">
-      <button id="startBtn">Inizia partita</button>
-    </section>
+<h1>Lotapatici – CPU</h1>
 
-    <!-- GAME -->
-    <section id="game" style="display:none">
-      <h3 id="credits">Crediti: Tu 1000 | CPU 1000</h3>
-      <div id="pot" style="margin-bottom:8px">Piatto: 0</div>
+<div id="status">
+  <p id="credits"></p>
+  <p id="pot"></p>
+</div>
 
-      <h4>Le tue carte</h4>
-      <div id="player-hand" class="hand"></div>
+<h2>Le tue carte</h2>
+<div id="playerHand" class="hand"></div>
 
-      <div id="actions" style="margin:12px">
-        <button id="bet50">Fiche 50</button>
-        <button id="bet100">Fiche 100</button>
-        <button id="callBtn">Call</button>
-        <button id="allinBtn">All-in</button>
-        <button id="changeBtn">Cambia carte</button>
-        <button id="scopriBtn">Scopri</button>
-      </div>
+<div class="actions">
+  <button onclick="bet(50)">Fiche 50</button>
+  <button onclick="bet(100)">Fiche 100</button>
+  <button onclick="call()">Call</button>
+  <button onclick="allIn()">All-in</button>
+  <button onclick="changeCards()">Cambia carte</button>
+  <button onclick="showdown()">Scopri</button>
+</div>
 
-      <h4 id="cpu-title" style="display:none">Carte CPU</h4>
-      <div id="cpu-hand" class="hand hidden"></div>
+<h2>Carte CPU</h2>
+<div id="cpuHand" class="hand"></div>
 
-      <div id="endActions" style="display:none;margin-top:14px">
-        <button id="newRoundBtn">Nuova partita</button>
-        <button id="backBtn">Torna alla lobby</button>
-      </div>
+<div class="actions" id="endActions" style="display:none">
+  <button onclick="newRound()">Nuova partita</button>
+</div>
 
-      <h4 style="margin-top:20px">Log partita</h4>
-      <div id="log" style="max-height:160px;overflow:auto;text-align:left;margin:0 10px 40px 10px;padding:8px;background:rgba(255,255,255,0.03)"></div>
-    </section>
-  </main>
+<h2>Log partita</h2>
+<pre id="log"></pre>
 
-  <script src="script.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
