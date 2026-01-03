@@ -1,8 +1,6 @@
-
-// ENGINE ESTRATTO – comportamento identico alla CPU originale
-
-const VALUES = ["1","2","3","4","5","6","7","F","C","R"];
-const SUITS = ["coppe","denari","bastoni","spade"];
+// engine.js
+export const VALUES = ["1","2","3","4","5","6","7","F","C","R"];
+export const SUITS = ["coppe","denari","bastoni","spade"];
 
 function shuffle(a){
   for(let i=a.length-1;i>0;i--){
@@ -25,26 +23,35 @@ export function buildDeck(){
 export function evaluateHand(hand){
   let counts={}, values=[];
   hand.forEach(c=>{
+    const idx = VALUES.indexOf(c.v);
     counts[c.v]=(counts[c.v]||0)+1;
-    values.push(VALUES.indexOf(c.v));
+    values.push(idx);
   });
+  values.sort((a,b)=>b-a);
+
   let pairs=[], tris=null;
   for(let v in counts){
-    if(counts[v]==3) tris=VALUES.indexOf(v);
-    if(counts[v]==2) pairs.push(VALUES.indexOf(v));
+    if(counts[v]===3) tris=VALUES.indexOf(v);
+    if(counts[v]===2) pairs.push(VALUES.indexOf(v));
   }
-  if(tris!==null) return {rank:3, main:tris, name:"Tris"};
-  if(pairs.length) return {rank:2, main:Math.max(...pairs), name:"Coppia"};
-  return {rank:1, main:Math.max(...values), name:"Carta Alta"};
+
+  if(tris!==null){
+    return {rank:3, name:"Tris", tiebreakers:[tris]};
+  }
+  if(pairs.length){
+    const p=Math.max(...pairs);
+    return {rank:2, name:"Coppia", tiebreakers:[p,...values.filter(x=>x!==p)]};
+  }
+  return {rank:1, name:"Carta Alta", tiebreakers:values};
 }
 
-export function renderHand(hand, container){
+export function renderHand(hand, container, hidden=false){
   container.innerHTML="";
-  hand.forEach(c=>{
+  hand.forEach((c,i)=>{
     const img=document.createElement("img");
-    img.src=`cards/${c.v}_${c.s}.jpg`;
-    img.style.width="80px";
-    img.style.margin="4px";
+    img.src = hidden ? "cards/back.png" : `cards/${c.v}_${c.s}.jpg`;
+    img.dataset.index=i;
+    img.className="card";
     container.appendChild(img);
   });
 }
