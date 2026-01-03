@@ -1,15 +1,14 @@
-/* script.js - Lotapatici CPU mode
-   - Usa cartelle: cards/{cardname}.jpg (es. 1_bastoni.jpg)
+/* script.js - Lotapatici CPU mode (FIX selezione & reset log)
+   - Metti immagini in cards/ con nomi tipo "1_bastoni.jpg", "5_denari.jpg", ecc.
    - Dorso: cards/back.png
 */
 
 (() => {
-  // --- CONFIG ---
+  // CONFIG
   const START_CREDITS = 1000;
   const MAX_CHANGE = 4;
-  const VALUES_ORDER = ["1","2","3","4","5","6","7","F","C","R"]; // "1" = asso (alto)
+  const VALUES_ORDER = ["1","2","3","4","5","6","7","F","C","R"];
   const SUITS = ["coppe","denari","bastoni","spade"];
-  // ----------------
 
   // DOM
   const playerCardsEl = document.getElementById('playerCards');
@@ -26,69 +25,27 @@
   const logEl = document.getElementById('log');
   const rechargeBtn = document.getElementById('rechargeBtn');
 
-  // GAME STATE
+  // STATE
   let state = {
     deck: [],
     player: { credits: START_CREDITS, hand: [], bet: 0, changed: false, selected: [] },
-    cpu: { credits: START_CREDITS, hand: [], bet: 0, changed: false, folded: false },
+    cpu: { credits: START_CREDITS, hand: [], bet: 0, changed: false, folded: false, revealed: false },
     pot: 0,
     phase: 'idle', // idle | betting | changing | showdown | ended
+    allowSelection: false,
     playerCanChange: true,
-    cpuCanChange: true,
-    allowSelection: false
+    cpuCanChange: true
   };
 
-  // UTILITIES
-  function shuffle(a){
-    for(let i=a.length-1;i>0;i--){
-      const j=Math.floor(Math.random()*(i+1));
-      [a[i],a[j]]=[a[j],a[i]];
-    }
-    return a;
-  }
-  function buildDeck(){
-    const d=[];
-    for(const s of SUITS){
-      for(const v of VALUES_ORDER){
-        d.push(`${v}_${s}`);
-      }
-    }
-    return shuffle(d);
-  }
-  function idxValue(v){
-    // higher index => stronger except we want "1" highest => reorder
-    const order = [...VALUES_ORDER];
-    // treat "1" as highest: move it to the end
-    // but VALUES_ORDER already has "1" first—make mapping: position where larger means stronger
-    // We'll map "1" -> 100 to ensure highest; else use index
-    if(v==="1") return 100;
-    return VALUES_ORDER.indexOf(v);
-  }
-  function handStrength(hand){
-    // hand: array of cardName like "5_denari"
-    const vals = hand.map(c => c.split('_')[0]);
-    const counts = {};
-    vals.forEach(v=>counts[v]=(counts[v]||0)+1);
-    let rank=1, main= -1; // 1 high card, 2 pair, 3 tris
-    for(const k in counts){
-      if(counts[k]===3){ rank=3; main = Math.max(main, idxValue(k)); }
-      if(counts[k]===2 && rank<3){ rank=2; main = Math.max(main, idxValue(k)); }
-      // for high card, compute highest value
-    }
-    if(rank===1) main = Math.max(...vals.map(v=>idxValue(v)));
-    return {rank, main};
-  }
+  // UTILS
+  function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } return a; }
+  function buildDeck(){ const d=[]; for(const s of SUITS){ for(const v of VALUES_ORDER){ d.push(`${v}_${s}`); } } return shuffle(d); }
+  function idxValue(v){ if(v==="1") return 100; return VALUES_ORDER.indexOf(v); }
+  function handStrength(hand){ const vals = hand.map(c=>c.split('_')[0]); const counts={}; vals.forEach(v=>counts[v]=(counts[v]||0)+1); let rank=1, main=-1; for(const k in counts){ if(counts[k]===3){ rank=3; main = Math.max(main, idxValue(k)); } if(counts[k]===2 && rank<3){ rank=2; main = Math.max(main, idxValue(k)); } } if(rank===1) main = Math.max(...vals.map(v=>idxValue(v))); return {rank, main}; }
+  function log(msg){ logEl.textContent += msg + '\n'; logEl.scrollTop = logEl.scrollHeight; }
 
-  function log(msg){
-    logEl.textContent += msg + '\n';
-    logEl.scrollTop = logEl.scrollHeight;
-  }
-
-  function renderCredits(){
-    creditsText.textContent = `Crediti: Tu ${state.player.credits} | CPU ${state.cpu.credits===Infinity ? '∞' : state.cpu.credits}`;
-    potText.textContent = `Piatto: ${state.pot}`;
-  }
-
+  // RENDER
+  function renderCredits(){ creditsText.textContent = `Crediti: Tu ${state.player.credits} | CPU ${state.cpu.credits===Infinity ? '∞' : state.cpu.credits}`; potText.textContent = `Piatto: ${state.pot}`; }
   function renderHands(reveal=false){
     // player
     playerCardsEl.innerHTML = '';
@@ -98,21 +55,19 @@
       const img = document.createElement('img');
       img.src = `cards/${c}.jpg`;
       card.appendChild(img);
-      if(state.allowSelection){
-        card.onclick = ()=> toggleSelect(i, card);
-      } else {
-        card.onclick = null;
-      }
+      // attach listener for selection always, but check allowSelection inside
+      card.addEventListener('click', ()=> {
+        if(!state.allowSelection) return;
+        toggleSelect(i);
+      });
       playerCardsEl.appendChild(card);
     });
-
     // CPU
     cpuCardsEl.innerHTML = '';
     state.cpu.hand.forEach((c,i)=>{
       const card = document.createElement('div');
       card.className = 'card';
       const img = document.createElement('img');
-      // show back unless reveal or game ended
       if(reveal || state.phase==='ended' || state.cpu.revealed){
         img.src = `cards/${c}.jpg`;
       } else {
@@ -123,67 +78,64 @@
     });
   }
 
-  function toggleSelect(i, el){
-    if(!state.allowSelection) return;
+  // SELECTION
+  function toggleSelect(i){
     const sel = state.player.selected;
-    if(sel.includes(i)){
-      state.player.selected = sel.filter(x=>x!==i);
-    } else {
+    if(sel.includes(i)) state.player.selected = sel.filter(x=>x!==i);
+    else {
       if(sel.length >= MAX_CHANGE) return;
       state.player.selected.push(i);
     }
-    renderHands();
+    renderHands(false);
   }
 
   // DEAL / NEW HAND
   function dealNewHand(){
+    // reset log
+    logEl.textContent = '';
     state.deck = buildDeck();
     state.player.hand = state.deck.splice(0,5);
     state.cpu.hand = state.deck.splice(0,5);
     state.player.bet = 0; state.cpu.bet = 0;
-    state.player.selected = [];
-    state.player.changed = false; state.cpu.changed = false; state.cpu.folded = false;
+    state.player.selected = []; state.player.changed = false;
+    state.cpu.changed = false; state.cpu.folded = false; state.cpu.revealed = false;
     state.pot = 0;
     state.phase = 'betting';
-    state.playerCanChange = true; state.cpuCanChange = true;
     state.allowSelection = false;
+    state.playerCanChange = true; state.cpuCanChange = true;
     renderCredits();
     renderHands(false);
     log('Nuova mano iniziata');
     updateButtons();
   }
 
-  // BUTTON VISIBILITY / ENABLE
+  // UPDATE UI BUTTONS
   function updateButtons(){
-    // show/hide new hand only when ended
+    // new hand shows only when ended
     newHandBtn.classList.toggle('hidden', state.phase !== 'ended');
     rechargeBtn.classList.toggle('hidden', state.player.credits > 0);
-    // change selection allowed only in 'changing' and if player hasn't changed yet
-    changeBtn.disabled = !(state.phase === 'changing' && state.playerCanChange && state.player.credits >= 0);
+    // change button enabled when player can change and not ended
+    changeBtn.disabled = !(state.playerCanChange && state.phase !== 'ended');
+    // change button text depends on selection mode
+    changeBtn.textContent = state.allowSelection ? 'Conferma cambio' : 'Cambia carte';
     chip50.disabled = !(state.phase === 'betting');
     chip100.disabled = !(state.phase === 'betting');
     allinBtn.disabled = !(state.phase === 'betting' && state.player.credits > 0);
     revealBtn.disabled = !(state.phase === 'showdown' || state.phase === 'ended');
-    // allow selection flag controls card click
-    state.allowSelection = (state.phase === 'changing' && state.playerCanChange);
+    // allowSelection controls selection clicks (already checked in listener)
   }
 
-  // BET ACTIONS
+  // BET logic
   function placeChip(amount){
-    if(state.player.credits < amount) {
-      alert('Non hai abbastanza crediti');
-      return;
-    }
+    if(state.player.credits < amount) { alert('Non hai abbastanza crediti'); return; }
     state.player.credits -= amount;
     state.player.bet += amount;
     state.pot += amount;
     log(`Hai puntato ${amount} (totale puntato questo giro: ${state.player.bet})`);
     renderCredits();
     updateButtons();
-    // CPU decision immediate: decide to follow or fold or raise
-    setTimeout(cpuRespondToBet, 450);
+    setTimeout(cpuRespondToBet, 350);
   }
-
   function allIn(){
     const amount = state.player.credits;
     state.player.bet += amount;
@@ -194,45 +146,31 @@
     setTimeout(cpuRespondToBet, 500);
   }
 
-  // CPU LOGIC FOR RESPONDING TO A BET
+  // CPU reacts to player bet or opens
   function cpuRespondToBet(){
-    // simple CPU: evaluate its current hand (if hasn't changed yet, consider it may change later)
-    // We'll make CPU decision to follow based on expected strength.
-    // If CPU has already changed or not doesn't matter here: use handStrength.
-    const s = handStrength(state.cpu.hand);
-    // if CPU folded already, ignore
     if(state.cpu.folded) return;
-
-    // if player bet 0, CPU might open bet itself: small chance
-    if(state.player.bet > state.cpu.bet){
-      const toCall = state.player.bet - state.cpu.bet;
-      // CPU decision: follow if pair/tris OR high card >= threshold OR random small chance
+    const toCall = state.player.bet - state.cpu.bet;
+    const s = handStrength(state.cpu.hand);
+    if(toCall > 0){
       const follow = (s.rank >= 2) || (s.main >= 4) || (Math.random() < 0.15);
       if(follow){
-        // CPU follows
         state.cpu.bet += toCall;
-        // CPU has "infinite" credits? we track credits but can set high number; check enough credits
         if(state.cpu.credits !== Infinity) state.cpu.credits = Math.max(0, state.cpu.credits - toCall);
         state.pot += toCall;
         log(`CPU segue ${toCall}`);
         renderCredits();
-        // after both have bet, move to change phase if it's first betting round
-        // If both have had opportunity and haven't changed -> go to changing
-        // We'll assume one betting round then change
+        // after follow we allow moving to change phase
         if(state.phase === 'betting'){
           state.phase = 'changing';
           log('Seleziona fino a 4 carte e premi di nuovo \'Cambia carte\'');
         }
-        updateButtons();
       } else {
-        // CPU folds
         state.cpu.folded = true;
         log('CPU esce');
-        // assign pot to player immediately
         awardPotToPlayer();
       }
     } else {
-      // player didn't bet, CPU may decide to open:
+      // CPU may open
       const open = (Math.random() < 0.12 && s.rank >= 2) || (Math.random() < 0.06);
       if(open){
         const betAmount = (s.rank >= 2) ? 100 : 50;
@@ -240,41 +178,26 @@
         state.pot += betAmount;
         if(state.cpu.credits !== Infinity) state.cpu.credits = Math.max(0, state.cpu.credits - betAmount);
         log(`CPU punta ${betAmount}`);
+        log('CPU ha puntato: rispondi con Fiche o All-in o lasciare uscire');
         renderCredits();
-        // now the player must decide: follow (we show Segui/Esi) - in our UI player uses chip buttons or All-in; to make it explicit, we log and expect player to follow via buttons
-        // But to make it explicit we add a short note
-        log('CPU ha puntato: puoi seguire con Fiche o All-in o lasciare uscire');
-        updateButtons();
       }
     }
+    updateButtons();
   }
 
-  // CPU CHANGE CARDS LOGIC (called when entering changing phase or when player confirms change)
+  // CPU change logic
   function cpuChangeLogic(){
     if(!state.cpuCanChange || state.cpu.changed) return;
-    // simple rule: remove cards that don't help pair/tris
     const counts = {};
-    state.cpu.hand.forEach(c=>{
-      const v = c.split('_')[0];
-      counts[v]=(counts[v]||0)+1;
-    });
-    // try to keep pairs/tris
+    state.cpu.hand.forEach(c=>{ const v = c.split('_')[0]; counts[v]=(counts[v]||0)+1; });
     const keepVals = Object.keys(counts).filter(k=>counts[k] >= 2);
-    let changed = false;
+    let changed=false;
     for(let i=0;i<state.cpu.hand.length;i++){
       const v = state.cpu.hand[i].split('_')[0];
       if(keepVals.length === 0){
-        // if no pair, replace low-value cards (value < 4)
-        if(idxValue(v) < 4){
-          state.cpu.hand[i] = state.deck.pop();
-          changed = true;
-        }
+        if(idxValue(v) < 4){ state.cpu.hand[i] = state.deck.pop(); changed=true; }
       } else {
-        // keep the keepVals, replace others
-        if(!keepVals.includes(v)){
-          state.cpu.hand[i] = state.deck.pop();
-          changed = true;
-        }
+        if(!keepVals.includes(v)){ state.cpu.hand[i] = state.deck.pop(); changed=true; }
       }
     }
     state.cpu.changed = true;
@@ -282,20 +205,11 @@
     renderHands(false);
   }
 
-  // PLAYER CHANGE ACTION: first press enables selection, second press confirms
+  // Change button handler
   function changeCardsHandler(){
-    if(state.phase !== 'changing' && state.phase !== 'betting') {
-      // allow also if in betting and moving to changing
-      // but normally should be in 'changing'
-    }
-
-    if(!state.playerCanChange) {
-      alert('Hai già cambiato le carte questa mano');
-      return;
-    }
-
-    // if selection not active yet: enable selection
+    if(!state.playerCanChange){ alert('Hai già cambiato le carte questa mano'); return; }
     if(!state.allowSelection){
+      // enable selection mode
       state.phase = 'changing';
       state.allowSelection = true;
       state.player.selected = [];
@@ -304,63 +218,53 @@
       renderHands(false);
       return;
     }
-
-    // second press: confirm change
+    // confirmation: perform changes
     const sel = state.player.selected.slice();
+    // if no selection -> keep cards
     if(sel.length === 0){
-      // player pressed without selecting -> assumes keeps cards
       state.player.changed = true;
       state.playerCanChange = false;
       state.allowSelection = false;
+      state.player.selected = [];
       log('Hai mantenuto le carte');
-      // CPU still can change
       cpuChangeLogic();
-      // proceed to showdown phase
       state.phase = 'showdown';
+      renderHands(true);
       setTimeout(() => showdown(), 600);
       updateButtons();
-      renderHands(false);
       return;
     }
-    // replace selected indices with top deck cards
-    sel.sort((a,b)=>b-a); // replace from highest index to avoid reindexing
-    sel.forEach(i=>{
-      state.player.hand[i] = state.deck.pop();
-    });
+    // replace selected indices
+    sel.sort((a,b)=>b-a);
+    sel.forEach(i=>{ state.player.hand[i] = state.deck.pop(); });
+    // clear selection and flags
     state.player.changed = true;
     state.playerCanChange = false;
     state.allowSelection = false;
+    state.player.selected = [];
     renderHands(false);
     log(`Hai cambiato carte (${sel.length})`);
-    // CPU now performs its change (with logic)
+    // cpu change and showdown
     cpuChangeLogic();
-    // move to showdown
     state.phase = 'showdown';
     updateButtons();
-    setTimeout(() => showdown(), 700);
+    setTimeout(()=> showdown(), 700);
   }
 
-  // SHOWDOWN: evaluate hands and assign pot
+  // SHOWDOWN
   function showdown(){
-    // reveal CPU cards
     renderHands(true);
-    // if someone folded earlier, award already done
-    if(state.cpu.folded){
-      awardPotToPlayer(); return;
-    }
-    if(state.player.folded){
-      awardPotToCPU(); return;
-    }
+    if(state.cpu.folded){ awardPotToPlayer(); return; }
+    if(state.player.folded){ awardPotToCPU(); return; }
     const p = handStrength(state.player.hand);
     const c = handStrength(state.cpu.hand);
-    // compare rank then main
     let winner = null;
     if(p.rank > c.rank) winner = 'player';
     else if(p.rank < c.rank) winner = 'cpu';
     else {
       if(p.main > c.main) winner = 'player';
       else if(p.main < c.main) winner = 'cpu';
-      else winner = 'player'; // tie-break: favor player
+      else winner = 'player';
     }
     if(winner === 'player'){
       state.player.credits += state.pot;
@@ -371,9 +275,10 @@
     }
     state.pot = 0;
     state.phase = 'ended';
-    updateButtons();
+    state.cpu.revealed = true;
     renderCredits();
     renderHands(true);
+    updateButtons();
   }
 
   function awardPotToPlayer(){
@@ -381,6 +286,7 @@
     log(`Hai vinto il piatto (${state.pot})`);
     state.pot = 0;
     state.phase = 'ended';
+    state.cpu.revealed = true;
     renderCredits();
     renderHands(true);
     updateButtons();
@@ -390,18 +296,14 @@
     log(`CPU vince il piatto (${state.pot})`);
     state.pot = 0;
     state.phase = 'ended';
+    state.cpu.revealed = true;
     renderCredits();
     renderHands(true);
     updateButtons();
   }
 
-  // NEW HAND preserved credits
+  // NEW HAND (preserves credits)
   function newHand(){
-    // If player's credits are 0, show recharge suggestion
-    if(state.player.credits <= 0){
-      rechargeBtn.classList.remove('hidden');
-    }
-    // Reset small things and deal
     dealNewHand();
   }
 
@@ -413,36 +315,20 @@
     log('Hai ricaricato 1000 crediti');
   };
 
-  // EVENT BINDINGS
+  // EVENTS
   chip50.onclick = ()=> placeChip(50);
   chip100.onclick = ()=> placeChip(100);
-  allinBtn.onclick = ()=> {
-    if(confirm('Vuoi andare ALL-IN con tutti i tuoi crediti?')) allIn();
-  };
+  allinBtn.onclick = ()=> { if(confirm('Vuoi andare ALL-IN con tutti i tuoi crediti?')) allIn(); };
   changeBtn.onclick = ()=> changeCardsHandler();
-  revealBtn.onclick = ()=> {
-    state.phase = 'showdown';
-    showdown();
-  };
-  newHandBtn.onclick = ()=> {
-    newHandBtn.classList.add('hidden');
-    newHand();
-  };
-  lobbyBtn.onclick = ()=> {
-    alert('Torna alla lobby (qui puoi impostare il redirect reale)');
-  };
+  revealBtn.onclick = ()=> { state.phase = 'showdown'; showdown(); };
+  newHandBtn.onclick = ()=> { newHandBtn.classList.add('hidden'); newHand(); };
+  lobbyBtn.onclick = ()=> { alert('Torna alla lobby (qui puoi mettere redirect)'); };
 
   // INIT
-  function init(){
-    // CPU credits infinite? set to Infinity or fixed
-    // state.cpu.credits = Infinity; // optional
-    dealNewHand();
-  }
-
-  // start
+  function init(){ dealNewHand(); updateButtons(); }
   init();
 
-  // Expose for debugging
+  // EXPOSE for debugging
   window.LOTA_STATE = state;
 
 })();
