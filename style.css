@@ -1,0 +1,7 @@
+body{background:#0b5d1e;color:#fff;font-family:sans-serif;text-align:center}
+.hand{display:flex;justify-content:center;margin:15px}
+.hand img{width:80px;margin:5px;cursor:pointer}
+.hand img.sel{outline:3px solid gold}
+.hidden img{visibility:hidden}
+#actions button,#endActions button{margin:4px;padding:8px}
+#log{max-height:150px;overflow:auto;font-size:14px;text-align:left;margin:10px}

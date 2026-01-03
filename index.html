@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Lotapatici CPU</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<h1>Lotapatici – CPU</h1>
+
+<div id="lobby">
+  <button onclick="startGame()">Inizia partita</button>
+</div>
+
+<div id="game" style="display:none">
+  <h3 id="credits"></h3>
+  <div id="pot">Piatto: 0</div>
+
+  <h4>Le tue carte</h4>
+  <div id="player-hand" class="hand"></div>
+
+  <div id="actions">
+    <button onclick="bet(50)">Fiche 50</button>
+    <button onclick="bet(100)">Fiche 100</button>
+    <button onclick="call()">Call</button>
+    <button onclick="allIn()">All-in</button>
+    <button onclick="toggleChange()">Cambia carte</button>
+    <button onclick="showdown()">Scopri</button>
+  </div>
+
+  <h4 id="cpu-title" style="display:none">Carte CPU</h4>
+  <div id="cpu-hand" class="hand hidden"></div>
+
+  <div id="endActions" style="display:none">
+    <button onclick="newRound()">Nuova partita</button>
+    <button onclick="backToLobby()">Torna alla lobby</button>
+  </div>
+
+  <h4>Log partita</h4>
+  <div id="log"></div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
