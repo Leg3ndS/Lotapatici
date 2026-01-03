@@ -1,37 +1,65 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="it">
 <head>
-<meta charset="UTF-8">
-<title>Lotapatici – CPU</title>
-<link rel="stylesheet" href="style.css">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Lotapatici - CPU</title>
+<style>
+  :root{--bg:#165c2e;--btn:#efefef;--txt:#fff;--accent:#f0d36a}
+  html,body{height:100%;margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--txt)}
+  .wrap{max-width:760px;margin:20px auto;padding:10px;text-align:center}
+  h1{margin:6px 0 8px;font-size:28px}
+  .status{margin-bottom:8px}
+  .pot{margin:6px 0 18px}
+  .cards-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  .card{width:72px;height:108px;border-radius:6px;border:2px solid rgba(255,255,255,0.12);box-shadow:0 2px 0 rgba(0,0,0,0.2);background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative}
+  .card img{max-width:100%;max-height:100%;border-radius:4px}
+  .card.selected{outline:4px solid var(--accent);transform:translateY(-6px)}
+  .controls{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:8px 0 18px}
+  button{background:var(--btn);color:#111;border:0;padding:8px 12px;border-radius:24px;cursor:pointer;min-width:90px}
+  #log{background:rgba(0,0,0,0.12);color:#fff;text-align:left;padding:14px;height:220px;overflow:auto;border-radius:6px;margin-top:22px;font-family:monospace;font-size:14px}
+  .small{font-size:14px;color:#ddd}
+  .hidden{display:none}
+  .top-buttons{display:flex;gap:10px;justify-content:center;margin-bottom:14px}
+  .credits{font-weight:700;margin-bottom:6px}
+  .center{display:flex;justify-content:center}
+  .reload{background:#cfe;border-radius:8px;padding:6px 10px;border:0}
+  @media (max-width:420px){
+    .card{width:56px;height:86px}
+    button{min-width:72px;padding:6px 8px}
+  }
+</style>
 </head>
 <body>
+<div class="wrap">
+  <h1>Lotapatici – CPU</h1>
+  <div class="status credits" id="creditsText">Crediti: Tu 1000 | CPU 1000</div>
+  <div class="pot small" id="potText">Piatto: 0</div>
 
-<h1>Lotapatici – CPU</h1>
+  <div><strong>Le tue carte</strong></div>
+  <div class="cards-row" id="playerCards"></div>
 
-<div id="status">
-  Crediti: Tu <span id="pCredits">1000</span> | CPU <span id="cCredits">∞</span><br>
-  Piatto: <span id="pot">0</span>
+  <div class="controls" id="controls">
+    <button id="chip50">Fiche 50</button>
+    <button id="chip100">Fiche 100</button>
+    <button id="allin">All-in</button>
+    <button id="changeBtn">Cambia carte</button>
+    <button id="revealBtn">Scopri</button>
+  </div>
+
+  <div style="height:6px"></div>
+  <div><strong>Carte CPU</strong></div>
+  <div class="cards-row" id="cpuCards"></div>
+
+  <div class="top-buttons">
+    <button id="newHandBtn" class="hidden">Nuova partita</button>
+    <button id="lobbyBtn">Torna alla lobby</button>
+    <button id="rechargeBtn" class="hidden reload">Ricarica 1000</button>
+  </div>
+
+  <div><strong>Log partita</strong></div>
+  <div id="log"></div>
 </div>
-
-<h2>Le tue carte</h2>
-<div id="playerHand" class="hand"></div>
-
-<div id="actions">
-  <button onclick="bet(50)">Fiche 50</button>
-  <button onclick="bet(100)">Fiche 100</button>
-  <button onclick="allIn()">All-in</button>
-  <button onclick="changeCards()">Cambia carte</button>
-  <button onclick="showdown()">Scopri</button>
-</div>
-
-<h2>Carte CPU</h2>
-<div id="cpuHand" class="hand"></div>
-
-<button onclick="newGame()">Nuova partita</button>
-
-<h2>Log partita</h2>
-<div id="log"></div>
 
 <script src="script.js"></script>
 </body>
