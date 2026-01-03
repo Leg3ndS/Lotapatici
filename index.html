@@ -1,9 +1,13 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <title>Lotapatici – CPU</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<title>Lotapatici – CPU</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.card { width:90px; margin:6px; cursor:pointer }
+.selected { outline:4px solid gold }
+</style>
 </head>
 <body>
 
@@ -13,9 +17,9 @@
 <p id="pot"></p>
 
 <h2>Le tue carte</h2>
-<div id="playerHand" class="hand"></div>
+<div id="playerHand"></div>
 
-<div class="actions">
+<div>
   <button onclick="bet(50)">Fiche 50</button>
   <button onclick="bet(100)">Fiche 100</button>
   <button onclick="call()">Call</button>
@@ -25,11 +29,14 @@
 </div>
 
 <h2>Carte CPU</h2>
-<div id="cpuHand" class="hand"></div>
+<div id="cpuHand"></div>
 
-<button onclick="newRound()" id="newRoundBtn" style="display:none">
-  Nuova partita
-</button>
+<!-- 👇 NUOVA PARTITA -->
+<div style="margin-top:20px">
+  <button onclick="newRound()" id="newRoundBtn" style="display:none">
+    Nuova partita
+  </button>
+</div>
 
 <h2>Log partita</h2>
 <pre id="log"></pre>
