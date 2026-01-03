@@ -4,42 +4,34 @@
 <meta charset="UTF-8">
 <title>Lotapatici – CPU</title>
 <link rel="stylesheet" href="style.css">
-<style>
-.card { width:90px; margin:6px; cursor:pointer }
-.selected { outline:4px solid gold }
-</style>
 </head>
 <body>
 
 <h1>Lotapatici – CPU</h1>
 
-<p id="credits"></p>
-<p id="pot"></p>
+<div id="status">
+  Crediti: Tu <span id="pCredits">1000</span> | CPU <span id="cCredits">∞</span><br>
+  Piatto: <span id="pot">0</span>
+</div>
 
 <h2>Le tue carte</h2>
-<div id="playerHand"></div>
+<div id="playerHand" class="hand"></div>
 
-<div>
+<div id="actions">
   <button onclick="bet(50)">Fiche 50</button>
   <button onclick="bet(100)">Fiche 100</button>
-  <button onclick="call()">Call</button>
   <button onclick="allIn()">All-in</button>
   <button onclick="changeCards()">Cambia carte</button>
   <button onclick="showdown()">Scopri</button>
 </div>
 
 <h2>Carte CPU</h2>
-<div id="cpuHand"></div>
+<div id="cpuHand" class="hand"></div>
 
-<!-- 👇 NUOVA PARTITA -->
-<div style="margin-top:20px">
-  <button onclick="newRound()" id="newRoundBtn" style="display:none">
-    Nuova partita
-  </button>
-</div>
+<button onclick="newGame()">Nuova partita</button>
 
 <h2>Log partita</h2>
-<pre id="log"></pre>
+<div id="log"></div>
 
 <script src="script.js"></script>
 </body>
