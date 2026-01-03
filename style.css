@@ -1,6 +1,0 @@
-body{background:#0b5d1e;color:#fff;font-family:sans-serif;text-align:center}
-.hand{display:flex;justify-content:center;margin:20px}
-.hand img{width:80px;margin:5px}
-.hidden img{visibility:hidden}
-#controls button{margin:5px;padding:10px}
-#log{margin-top:20px;font-size:14px}
