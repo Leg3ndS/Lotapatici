@@ -1,0 +1,6 @@
+
+body{font-family:Georgia,serif;background:#1b5e20;color:#fff;text-align:center}
+img{width:90px;margin:6px}
+.selected{border:3px solid gold}
+.hidden{display:none}
+button,input{padding:10px;margin:6px}
