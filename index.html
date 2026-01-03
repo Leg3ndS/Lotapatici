@@ -9,10 +9,8 @@
 
 <h1>Lotapatici – CPU</h1>
 
-<div id="status">
-  <p id="credits"></p>
-  <p id="pot"></p>
-</div>
+<p id="credits"></p>
+<p id="pot"></p>
 
 <h2>Le tue carte</h2>
 <div id="playerHand" class="hand"></div>
@@ -29,9 +27,9 @@
 <h2>Carte CPU</h2>
 <div id="cpuHand" class="hand"></div>
 
-<div class="actions" id="endActions" style="display:none">
-  <button onclick="newRound()">Nuova partita</button>
-</div>
+<button onclick="newRound()" id="newRoundBtn" style="display:none">
+  Nuova partita
+</button>
 
 <h2>Log partita</h2>
 <pre id="log"></pre>
