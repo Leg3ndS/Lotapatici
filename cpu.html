@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Lotapatici – CPU</title>
+<style>
+  :root{--bg:#155a2b;--card-w:78px}
+  body{background:var(--bg);color:#fff;font-family:Verdana,Arial;margin:0;padding:12px 8px 60px}
+  .center{max-width:980px;margin:0 auto;text-align:center}
+  h1{font-size:30px;margin:6px 0}
+  .sub{color:#e6f7ea;margin-bottom:12px}
+  .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:12px 0}
+  .card{width:var(--card-w);height:110px;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 0 rgba(0,0,0,0.2)}
+  .card img{max-width:100%;max-height:100%}
+  .playerArea,.cpuArea{margin:12px 0}
+  .controls{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:10px 0}
+  button.btn{background:#e9ecef;color:#003300;padding:10px 14px;border-radius:26px;border:0;cursor:pointer;font-weight:600}
+  .chip{padding:8px 14px}
+  .selected{outline:4px solid gold;border-radius:6px}
+  #log{background:rgba(0,0,0,0.12);color:#fff;padding:12px;margin-top:18px;border-radius:8px;text-align:left;height:200px;overflow:auto;white-space:pre-wrap}
+  .topBar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+  select,input{padding:8px;border-radius:6px;border:0}
+  .smallBtn{background:#dfeee1;padding:8px 10px;border-radius:10px;border:0;color:#003300;cursor:pointer}
+  .hidden{display:none}
+  .bigCard{width:110px;height:150px}
+  .centerButtons{display:flex;gap:10px;justify-content:center;margin:12px 0}
+  @media(max-width:420px){:root{--card-w:64px}.card{height:92px}.bigCard{width:86px;height:120px}}
+</style>
+</head>
+<body>
+  <div class="center">
+    <div class="topBar">
+      <h1>Lotapatici – CPU</h1>
+      <div>
+        Difficoltà:
+        <select id="diff">
+          <option value="easy">Facile</option>
+          <option value="medium" selected>Media</option>
+          <option value="hard">Difficile</option>
+        </select>
+        Ante:
+        <input id="anteInput" type="number" value="50" min="10" step="10" style="width:80px">
+        <button id="startBtn" class="smallBtn">Inizia partita</button>
+      </div>
+    </div>
+
+    <div class="sub" id="creditsText">Crediti: Tu 1000 | CPU ∞</div>
+    <div class="sub" id="potText">Piatto: 0</div>
+
+    <div class="playerArea">
+      <h3>Le tue carte</h3>
+      <div id="playerCards" class="row"></div>
+    </div>
+
+    <div class="centerButtons">
+      <button id="chip50" class="btn chip">Fiche 50</button>
+      <button id="chip100" class="btn chip">Fiche 100</button>
+      <button id="allin" class="btn chip">All-in</button>
+      <button id="changeBtn" class="btn">Cambia carte</button>
+      <button id="revealBtn" class="btn">Scopri</button>
+    </div>
+
+    <div style="height:8px"></div>
+
+    <div class="cpuArea">
+      <h3>Carte CPU</h3>
+      <div id="cpuCards" class="row"></div>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:8px">
+      <button id="newHandBtn" class="btn">Nuova partita</button>
+      <a href="index.html"><button class="btn">Torna alla lobby</button></a>
+    </div>
+
+    <h3 style="margin-top:18px">Log partita</h3>
+    <div id="log"></div>
+  </div>
+
+<script>
+/* Lotapatici CPU — cpu.html definitivo
+   Flusso corretto:
+   bet1 -> change (solo se premi) -> bet2 -> showdown
+*/
+
+(() => {
+  const VALUES=["1","2","3","4","5","6","7","F","C","R"];
+  const SUITS=["coppe","denari","bastoni","spade"];
+  const MAX_CHANGE=4;
+
+  let state = {
+    deck: [],
+    player: { hand: [], credits: 1000, bet: 0, selected: [], changed:false },
+    cpu: { hand: [], credits: 2000, bet: 0, changed:false, folded:false },
+    pot: 0,
+    phase: "idle", // idle | bet1 | change | bet2 | showdown | ended
+    waitingResponse:false,
+    lastCPUbet:0
+  };
+
+  const el=id=>document.getElementById(id);
+  const logBox=el("log");
+
+  function log(t){
+    logBox.textContent += t + "\n";
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+
+  function shuffle(a){
+    for(let i=a.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      [a[i],a[j]]=[a[j],a[i]];
+    }
+    return a;
+  }
+  function buildDeck(){
+    const d=[];
+    for(const s of SUITS) for(const v of VALUES) d.push(`${v}_${s}`);
+    return shuffle(d);
+  }
+  function cardValueCode(card){
+    // return numeric value for comparison (1->10)
+    const v = card.split("_")[0];
+    if(v==="1") return 10;
+    return VALUES.indexOf(v);
+  }
+  function handStrength(hand){
+    const counts={};
+    hand.forEach(c=>{
+      const v=c.split("_")[0];
+      counts[v]=(counts[v]||0)+1;
+    });
+    let pair=null, tris=null;
+    for(const k in counts){
+      if(counts[k]===3) tris=k;
+      if(counts[k]===2) pair=k;
+    }
+    if(tris) return {rank:3,high:cardValueCode(tris+"_x")};
+    if(pair) return {rank:2,high:cardValueCode(pair+"_x")};
+    return {rank:1,high: Math.max(...hand.map(cardValueCode))};
+  }
+
+  /* RENDER */
+  function render(){
+    el("creditsText").textContent = `Crediti: Tu ${state.player.credits} | CPU ${state.cpu.credits===Infinity?"∞":state.cpu.credits}`;
+    el("potText").textContent = `Piatto: ${state.pot}`;
+
+    // player cards
+    const pc = el("playerCards");
+    pc.innerHTML="";
+    state.player.hand.forEach((c,i)=>{
+      const d = document.createElement("div");
+      d.className = "card" + (state.player.selected.includes(i) ? " selected":"");
+      d.style.cursor = (state.phase==="change" && !state.player.changed) ? "pointer":"default";
+      d.onclick = () => {
+        if(state.phase!=="change" || state.player.changed) return;
+        if(state.player.selected.includes(i)) state.player.selected = state.player.selected.filter(x=>x!==i);
+        else if(state.player.selected.length < MAX_CHANGE) state.player.selected.push(i);
+        render();
+      };
+      d.innerHTML = `<img src="cards/${c}.jpg" alt="">`;
+      pc.appendChild(d);
+    });
+
+    // cpu cards (show back except showdown/ended)
+    const cc = el("cpuCards");
+    cc.innerHTML="";
+    const show = (state.phase==="showdown" || state.phase==="ended");
+    state.cpu.hand.forEach(c=>{
+      const d=document.createElement("div");
+      d.className="card";
+      d.innerHTML = `<img src="cards/${show?c:"back"}.png" alt="">`;
+      cc.appendChild(d);
+    });
+
+    // buttons visibility
+    el("changeBtn").disabled = !(state.phase==="change" && !state.player.changed);
+    el("revealBtn").disabled = !(state.phase==="showdown");
+  }
+
+  /* GAME FLOW */
+  function startGame(){
+    const ante = parseInt(el("anteInput").value) || 0;
+    state.deck = buildDeck();
+    state.player.hand = state.deck.splice(0,5);
+    state.cpu.hand = state.deck.splice(0,5);
+    state.player.bet = state.cpu.bet = 0;
+    state.player.selected = [];
+    state.player.changed = state.cpu.changed = false;
+    state.cpu.folded=false;
+    state.pot=0;
+    state.phase = "bet1";
+    state.waitingResponse=false;
+    state.lastCPUbet=0;
+
+    // if ante > 0, both pay ante automatically
+    if(ante>0){
+      state.player.credits -= ante;
+      state.cpu.credits -= (isFinite(state.cpu.credits)?ante:0);
+      state.pot += ante*2;
+      log(`Ante ${ante} pagata`);
+    }
+    log("Nuova mano iniziata");
+    render();
+  }
+
+  function puntata(amount){
+    if(!(state.phase==="bet1" || state.phase==="bet2")) return;
+    // player bets amount
+    if(amount > state.player.credits) amount = state.player.credits;
+    state.player.credits -= amount;
+    state.player.bet += amount;
+    state.pot += amount;
+    log(`Hai puntato ${amount} (totale puntato questo giro: ${state.player.bet})`);
+
+    // CPU responds
+    cpuRespondToCall(amount);
+    render();
+  }
+
+  function cpuRespondToCall(incomingAmount){
+    // incomingAmount: what player just added
+    // toCall = player.bet - cpu.bet
+    const toCall = state.player.bet - state.cpu.bet;
+    if(toCall <= 0){
+      // nothing to do
+      return;
+    }
+    const diff = el("diff").value;
+    const s = handStrength(state.cpu.hand);
+    // difficulty factor: probabilities threshold to fold vs call
+    let foldThreshold; // if random < threshold => fold
+    if(diff==="easy") foldThreshold = (s.rank===1 ? 0.6 : s.rank===2 ? 0.2 : 0.05);
+    else if(diff==="medium") foldThreshold = (s.rank===1 ? 0.35 : s.rank===2 ? 0.1 : 0.02);
+    else foldThreshold = (s.rank===1 ? 0.18 : s.rank===2 ? 0.04 : 0.01);
+
+    // if toCall is large relative to CPU credits, fold
+    const toCallRatio = toCall / Math.max(1, (state.cpu.credits===Infinity?10000:state.cpu.credits));
+    const roll = Math.random();
+
+    if(roll < foldThreshold || toCallRatio > 0.4){
+      // CPU folds
+      state.cpu.folded = true;
+      state.player.credits += state.pot;
+      log("CPU esce");
+      state.phase = "ended";
+    } else {
+      // CPU follows
+      state.cpu.credits = isFinite(state.cpu.credits) ? (state.cpu.credits - toCall) : state.cpu.credits;
+      state.cpu.bet += toCall;
+      state.pot += toCall;
+      log(`CPU segue ${toCall}`);
+      // move phase forward
+      if(state.phase === "bet1") {
+        state.phase = "change";
+        log("Fase cambio attivata (premi 'Cambia carte' se vuoi)");
+      } else if(state.phase === "bet2") {
+        state.phase = "showdown";
+        log("Tutti hanno seguito: vai a SCOPRI");
+      }
+    }
+    render();
+  }
+
+  /* CPU can sometimes initiate a bet in bet2 (aggressive) */
+  function cpuMaybeBetInBet2(){
+    if(state.phase !== "bet2") return;
+    const diff = el("diff").value;
+    const s = handStrength(state.cpu.hand);
+    let betChance = 0.15;
+    if(diff==="easy") betChance = s.rank===1 ? 0.08 : s.rank===2 ? 0.25 : 0.4;
+    if(diff==="medium") betChance = s.rank===1 ? 0.12 : s.rank===2 ? 0.35 : 0.6;
+    if(diff==="hard") betChance = s.rank===1 ? 0.18 : s.rank===2 ? 0.45 : 0.75;
+    const roll = Math.random();
+    if(roll < betChance){
+      // CPU initiates bet
+      const amount = (s.rank>=2) ? 100 : 50;
+      state.cpu.bet += amount;
+      state.cpu.credits = isFinite(state.cpu.credits) ? (state.cpu.credits - amount) : state.cpu.credits;
+      state.pot += amount;
+      state.lastCPUbet = amount;
+      state.waitingResponse = true;
+      log(`CPU punta ${amount} — scegli Segui o Esci`);
+      // When CPU bets, show Segui/Esci by enabling reveal & change buttons? We'll disable normal bet buttons while waiting.
+    }
+    render();
+  }
+
+  /* Change cards */
+  el("changeBtn").onclick = () => {
+    if(state.phase !== "change") return;
+    if(state.player.changed) return;
+
+    // If player selected none => keep cards, else swap selected
+    if(state.player.selected.length === 0){
+      log("Hai mantenuto le carte");
+    } else {
+      // swap selected positions
+      state.player.selected.sort((a,b)=>b-a).forEach(i=>{
+        state.player.hand[i] = state.deck.pop();
+      });
+      log("Hai cambiato carte");
+    }
+    state.player.selected = [];
+    state.player.changed = true;
+
+    // CPU change now (logical)
+    cpuChangeAfterPlayer();
+
+    state.phase = "bet2";
+    render();
+
+    // CPU may initiate a bet in bet2 after changing
+    setTimeout(()=>cpuMaybeBetInBet2(), 500);
+  };
+
+  function cpuChangeAfterPlayer(){
+    if(state.cpu.changed) return;
+    const s = handStrength(state.cpu.hand);
+    // simple logic: if no pair and random -> change low-value cards
+    if(s.rank===1){
+      // change up to 3 lowest-value cards
+      const ranked = state.cpu.hand.map((c,i)=>({i,val:cardValue(c)})).sort((a,b)=>a.val-b.val);
+      const toChange = ranked.slice(0, Math.min(3, ranked.length));
+      toChange.forEach(x=>{
+        state.cpu.hand[x.i] = state.deck.pop();
+      });
+      log("CPU cambia carte");
+    } else {
+      log("CPU mantiene le carte");
+    }
+    state.cpu.changed = true;
+  }
+
+  function cardValue(card){
+    return cardValueCode(card);
+  }
+
+  /* Reveal/showdown */
+  el("revealBtn").onclick = ()=>{
+    if(state.phase !== "showdown") return;
+    doShowdown();
+  };
+
+  function doShowdown(){
+    const p = handStrength(state.player.hand);
+    const c = handStrength(state.cpu.hand);
+    if(state.cpu.folded){
+      log("CPU ha già foldato — vinci la mano");
+      state.player.credits += state.pot;
+      state.phase = "ended";
+      render();
+      return;
+    }
+    if(p.rank > c.rank || (p.rank===c.rank && p.high > c.high)){
+      log("VINCI la mano");
+      state.player.credits += state.pot;
+    } else if(c.rank > p.rank || (c.rank===p.rank && c.high > p.high)){
+      log("CPU vince la mano");
+      state.cpu.credits = isFinite(state.cpu.credits)?(state.cpu.credits + state.pot):state.cpu.credits;
+    } else {
+      // tie: split
+      log("Pareggio — piatto diviso");
+      const half = Math.floor(state.pot/2);
+      state.player.credits += half;
+      if(isFinite(state.cpu.credits)) state.cpu.credits += (state.pot - half);
+    }
+    state.phase = "ended";
+    render();
+  }
+
+  /* Player response when CPU bets (Segui / Esci) - create buttons dynamically */
+  function showSeguiEsci(){
+    // create simple confirm overlay by temporarily reusing changeBtn area (or better: prompt)
+    // We'll add two temporary buttons under controls
+    if(!state.waitingResponse) return;
+    if(el("seguiBtn")) return; // already present
+    const container = document.createElement("div");
+    container.id = "respArea";
+    container.style.display="flex";
+    container.style.gap="12px";
+    container.style.justifyContent="center";
+    const segui = document.createElement("button");
+    segui.className="btn";
+    segui.id = "seguiBtn";
+    segui.textContent = "Segui";
+    segui.onclick = ()=>{ playerSegui(); container.remove(); };
+    const esci = document.createElement("button");
+    esci.className="btn";
+    esci.id = "esciBtn";
+    esci.textContent = "Esci";
+    esci.onclick = ()=>{ playerEsci(); container.remove(); };
+    document.querySelector(".center").insertBefore(container, el("log"));
+    container.appendChild(segui);
+    container.appendChild(esci);
+  }
+
+  function playerSegui(){
+    if(!state.waitingResponse) return;
+    const toCall = state.cpu.bet - state.player.bet;
+    const pay = Math.min(toCall, state.player.credits);
+    state.player.credits -= pay;
+    state.player.bet += pay;
+    state.pot += pay;
+    log(`Hai seguito ${pay}`);
+    state.waitingResponse = false;
+    // after following, if in bet2 -> showdown
+    if(state.phase === "bet2") state.phase = "showdown";
+    render();
+  }
+
+  function playerEsci(){
+    if(!state.waitingResponse) return;
+    // Player folds
+    log("Hai scelto di uscire — perdi il piatto");
+    state.phase = "ended";
+    // cpu gets pot
+    state.cpu.credits = isFinite(state.cpu.credits) ? (state.cpu.credits + state.pot) : state.cpu.credits;
+    state.waitingResponse = false;
+    render();
+  }
+
+  /* helper for card values */
+  function cardValueCode(card){
+    const v = card.split("_")[0];
+    if(v==="1") return 10;
+    return VALUES.indexOf(v);
+  }
+
+  /* buttons */
+  el("chip50").onclick = ()=>puntata(50);
+  el("chip100").onclick = ()=>puntata(100);
+  el("allin").onclick = ()=>puntata(state.player.credits);
+  el("newHandBtn").onclick = ()=> {
+    // reset only the hand, keep credits
+    startGame();
+    el("log").textContent=""; // reset log each new hand as requested
+  };
+  el("startBtn").onclick = ()=> {
+    // start using ante and difficulty selected
+    startGame();
+  };
+
+  /* initial setup: disable change/reveal until started */
+  function initialRender(){
+    render();
+    // periodic check to show segui/esci if CPU waiting
+    setInterval(()=>{
+      if(state.waitingResponse) showSeguiEsci();
+    }, 300);
+  }
+
+  /* Start with idle screen until user presses Inizia partita */
+  initialRender();
+
+})();
+</script>
+</body>
+</html>
