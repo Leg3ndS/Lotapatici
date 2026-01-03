@@ -1,0 +1,16 @@
+body{
+background:#1f5f2a;
+color:white;
+font-family:serif;
+text-align:center;
+}
+button{
+padding:8px 12px;
+margin:4px;
+cursor:pointer;
+}
+#hand button{
+border:1px solid white;
+background:transparent;
+color:white;
+}
