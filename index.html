@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Lotapatici CPU</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<h1>CPU</h1>
+
+<div id="cpu-hand" class="hand hidden"></div>
+<div id="player-hand" class="hand"></div>
+
+<div id="controls">
+  <button onclick="playerAction('check')">Check</button>
+  <button onclick="playerAction('call')">Call</button>
+  <button onclick="playerAction('allin')">All‑in</button>
+  <button onclick="changeCards()">Cambia carte</button>
+  <button onclick="showdown()">Scopri</button>
+</div>
+
+<div id="pot">Piatto: 0</div>
+<div id="log"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
