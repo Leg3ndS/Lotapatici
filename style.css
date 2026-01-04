@@ -1,46 +1,32 @@
-body{
-  background:#0b4f2a;
+body.table{
+  background:#0b5d2a;
   color:white;
-  font-family:Arial,sans-serif;
+  font-family:sans-serif;
   text-align:center;
 }
 
-h1,h2{margin:10px 0}
-
-.hand{
-  display:flex;
-  justify-content:center;
-  gap:10px;
-  margin:10px 0;
-  flex-wrap:wrap;
+.cards img{
+  width:70px;
+  margin:4px;
+  border-radius:6px;
 }
 
-.card{
-  width:90px;
-  border-radius:10px;
-  cursor:pointer;
-}
-
-.card.selected{
-  outline:4px solid gold;
-  transform:translateY(-8px);
+.selected{
+  outline:3px solid gold;
 }
 
 button{
-  margin:6px;
-  padding:10px 18px;
+  padding:8px 14px;
+  margin:4px;
   border-radius:20px;
   border:none;
-  cursor:pointer;
+  font-weight:bold;
 }
 
-#log{
-  margin:20px auto;
-  width:90%;
-  max-width:600px;
-  background:#06381e;
+pre{
+  background:#003b1f;
   padding:10px;
-  border-radius:10px;
+  max-width:90%;
+  margin:auto;
   text-align:left;
-  white-space:pre-line;
 }
