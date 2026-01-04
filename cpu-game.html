@@ -5,11 +5,12 @@
   <title>Lotapatici – CPU</title>
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body class="table">
 
 <h1>Lotapatici – CPU</h1>
 
-<div id="info"></div>
+<div id="info" class="info"></div>
 
 <h2>Le tue carte</h2>
 <div id="playerHand" class="cards"></div>
@@ -25,20 +26,28 @@
 <h2>Carte CPU</h2>
 <div id="cpuHand" class="cards"></div>
 
-<button onclick="newHand()">Nuova mano</button>
-<button onclick="location.href='index.html'">Torna alla lobby</button>
+<div class="actions">
+  <button onclick="newHand()">Nuova mano</button>
+  <button onclick="location.href='index.html'">Torna alla lobby</button>
+</div>
 
 <h2>Log partita</h2>
 <pre id="log"></pre>
 
-<script type="module">
-import {buildDeck, evaluateHand} from "./engine.js";
-
+<script src="engine.js"></script>
+<script>
 let deck, playerHand, cpuHand;
-let pot=0, credits=1000;
-let ante = +localStorage.getItem("ante");
-let difficulty = localStorage.getItem("cpuDifficulty");
-let changeMode=false, selected=[];
+let pot = 0;
+let credits = 1000;
+let ante = Number(localStorage.getItem("ante")) || 50;
+let difficulty = localStorage.getItem("cpuDifficulty") || "medium";
+let changeMode = false;
+let selected = [];
+
+const playerHandDiv = document.getElementById("playerHand");
+const cpuHandDiv = document.getElementById("cpuHand");
+const logEl = document.getElementById("log");
+const info = document.getElementById("info");
 
 startGame();
 
@@ -48,47 +57,51 @@ function log(msg){
 
 function startGame(){
   credits -= ante;
-  pot = ante*2;
-  log("Ante "+ante+" pagata");
+  pot = ante * 2;
+  log("Ante " + ante + " pagata");
   newHand();
 }
 
 function newHand(){
-  logEl.textContent="";
-  selected=[];
-  changeMode=false;
+  logEl.textContent = "";
+  selected = [];
+  changeMode = false;
+
   deck = buildDeck();
   playerHand = deck.splice(0,5);
   cpuHand = deck.splice(0,5);
-  render();
+
+  render(false);
   log("Nuova mano iniziata");
 }
 
-function render(){
-  info.textContent=`Crediti: Tu ${credits} | CPU ∞ — Piatto ${pot}`;
-  playerHandDiv.innerHTML="";
-  cpuHandDiv.innerHTML="";
+function render(showCpu){
+  info.textContent = `Crediti: Tu ${credits} | CPU ∞ — Piatto ${pot}`;
+
+  playerHandDiv.innerHTML = "";
+  cpuHandDiv.innerHTML = "";
 
   playerHand.forEach((c,i)=>{
-    const img=document.createElement("img");
-    img.src=`cards/${c.v}_${c.s}.jpg`;
-    img.onclick=()=>selectCard(i,img);
+    const img = document.createElement("img");
+    img.src = `cards/${c.v}_${c.s}.jpg`;
+    img.onclick = () => selectCard(i, img);
     playerHandDiv.appendChild(img);
   });
 
-  cpuHand.forEach(()=>{
-    const img=document.createElement("img");
-    img.src="cards/back.png";
+  cpuHand.forEach(c=>{
+    const img = document.createElement("img");
+    img.src = showCpu ? `cards/${c.v}_${c.s}.jpg` : "cards/back.png";
     cpuHandDiv.appendChild(img);
   });
 }
 
 function selectCard(i,img){
   if(!changeMode) return;
+
   if(selected.includes(i)){
-    selected=selected.filter(x=>x!==i);
+    selected = selected.filter(x=>x!==i);
     img.classList.remove("selected");
-  }else if(selected.length<4){
+  }else if(selected.length < 4){
     selected.push(i);
     img.classList.add("selected");
   }
@@ -96,50 +109,61 @@ function selectCard(i,img){
 
 function toggleChange(){
   if(!changeMode){
-    changeMode=true;
+    changeMode = true;
     log("Seleziona fino a 4 carte");
   }else{
-    selected.forEach(i=>playerHand[i]=deck.pop());
-    selected=[];
-    changeMode=false;
+    selected.forEach(i=>{
+      playerHand[i] = deck.pop();
+    });
+    selected = [];
+    changeMode = false;
     log("Hai cambiato carte");
     cpuChange();
-    render();
+    render(false);
   }
 }
 
 function cpuChange(){
-  const ev=evaluateHand(cpuHand);
-  if(difficulty==="easy" && ev.rank>1) return;
-  if(difficulty==="medium" && ev.rank>2) return;
+  const ev = evaluateHand(cpuHand);
 
-  let toChange=[];
+  let threshold = difficulty === "easy" ? 1 :
+                  difficulty === "medium" ? 2 : 3;
+
+  if(ev.rank >= threshold){
+    log("CPU mantiene le carte");
+    return;
+  }
+
   cpuHand.forEach((c,i)=>{
-    if(cpuHand.filter(x=>x.v===c.v).length===1)
-      toChange.push(i);
+    if(cpuHand.filter(x=>x.v===c.v).length === 1){
+      cpuHand[i] = deck.pop();
+    }
   });
 
-  toChange.slice(0,3).forEach(i=>cpuHand[i]=deck.pop());
   log("CPU cambia carte");
 }
 
 function bet(amount){
-  credits-=amount;
-  pot+=amount*2;
-  log("Hai puntato "+amount);
+  if(amount > credits) return;
+
+  credits -= amount;
+  pot += amount * 2;
+  log("Hai puntato " + amount);
+
   cpuRespond(amount);
-  render();
+  render(false);
 }
 
 function cpuRespond(amount){
-  const ev=evaluateHand(cpuHand);
-  if(ev.rank===1 && Math.random()<0.4){
+  const ev = evaluateHand(cpuHand);
+  if(ev.rank === 1 && Math.random() < 0.4){
     log("CPU esce");
-    credits+=pot;
-    pot=0;
+    credits += pot;
+    pot = 0;
+    render(false);
     return;
   }
-  log("CPU segue "+amount);
+  log("CPU segue " + amount);
 }
 
 function allIn(){
@@ -147,23 +171,18 @@ function allIn(){
 }
 
 function showdown(){
-  cpuHandDiv.innerHTML="";
-  cpuHand.forEach(c=>{
-    const img=document.createElement("img");
-    img.src=`cards/${c.v}_${c.s}.jpg`;
-    cpuHandDiv.appendChild(img);
-  });
+  render(true);
 
-  const p=evaluateHand(playerHand);
-  const c=evaluateHand(cpuHand);
+  const p = evaluateHand(playerHand);
+  const c = evaluateHand(cpuHand);
 
-  if(p.rank>c.rank || (p.rank===c.rank && p.main>c.main)){
-    credits+=pot;
+  if(p.rank > c.rank || (p.rank === c.rank && p.main > c.main)){
+    credits += pot;
     log("VINCI la mano");
   }else{
     log("CPU vince la mano");
   }
-  pot=0;
+  pot = 0;
 }
 </script>
 
