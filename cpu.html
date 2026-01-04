@@ -2,38 +2,39 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <title>Setup CPU</title>
+  <title>Lotapatici – CPU</title>
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body class="table">
 
-  <h1>CPU – Impostazioni</h1>
+<h1>Lotapatici – CPU</h1>
 
-  <div class="setup">
-    <label>Difficoltà CPU</label>
-    <select id="difficulty">
-      <option value="easy">Facile</option>
-      <option value="medium" selected>Media</option>
-      <option value="hard">Difficile</option>
-    </select>
+<div id="info" class="info"></div>
 
-    <label>Ante iniziale</label>
-    <select id="ante">
-      <option value="50">50</option>
-      <option value="100">100</option>
-      <option value="200">200</option>
-    </select>
+<h2>Le tue carte</h2>
+<div id="playerHand" class="cards"></div>
 
-    <button onclick="start()">Inizia partita</button>
-  </div>
+<div class="actions">
+  <button id="bet50">Fiche 50</button>
+  <button id="bet100">Fiche 100</button>
+  <button id="allin">All-in</button>
+  <button id="change">Cambia carte</button>
+  <button id="show">Scopri</button>
+</div>
 
-  <script>
-    function start(){
-      localStorage.setItem("cpuDifficulty", difficulty.value);
-      localStorage.setItem("ante", ante.value);
-      location.href="cpu-game.html";
-    }
-  </script>
+<h2>Carte CPU</h2>
+<div id="cpuHand" class="cards"></div>
 
+<div class="actions">
+  <button id="newHand">Nuova mano</button>
+  <button onclick="location.href='index.html'">Torna alla lobby</button>
+</div>
+
+<h2>Log partita</h2>
+<pre id="log"></pre>
+
+<script src="engine.js"></script>
+<script src="cpuscript.js"></script>
 </body>
 </html>
