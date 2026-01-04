@@ -1,175 +1,39 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="UTF-8">
-<title>Lotapatici – CPU</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <title>Setup CPU</title>
+  <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="table">
 
-<h1>Lotapatici – CPU</h1>
+  <h1>CPU – Impostazioni</h1>
 
-<div id="status"></div>
-<div id="pot"></div>
+  <div class="setup">
+    <label>Difficoltà CPU</label>
+    <select id="difficulty">
+      <option value="easy">Facile</option>
+      <option value="medium" selected>Media</option>
+      <option value="hard">Difficile</option>
+    </select>
 
-<h2>Le tue carte</h2>
-<div id="playerHand" class="hand"></div>
+    <label>Ante iniziale</label>
+    <select id="ante">
+      <option value="50">50</option>
+      <option value="100">100</option>
+      <option value="200">200</option>
+    </select>
 
-<div>
-  <button onclick="bet(50)">Fiche 50</button>
-  <button onclick="bet(100)">Fiche 100</button>
-  <button onclick="allIn()">All-in</button>
-  <button onclick="changeCards()">Cambia carte</button>
-  <button onclick="showdown()">Scopri</button>
-</div>
+    <button onclick="start()">Inizia partita</button>
+  </div>
 
-<h2>Carte CPU</h2>
-<div id="cpuHand" class="hand"></div>
-
-<button onclick="newHand()">Nuova mano</button>
-<button onclick="location.href='index.html'">Torna alla lobby</button>
-
-<h2>Log partita</h2>
-<div id="log"></div>
-
-<script type="module">
-import {buildDeck, evaluateHand, renderHand} from './engine.js';
-
-let deck, playerHand, cpuHand;
-let playerCredits=1000;
-let pot=0;
-
-let changeActive=false;
-let playerChanged=false;
-let cpuChanged=false;
-
-const logBox=document.getElementById("log");
-
-function log(msg){
-  logBox.textContent+=msg+"\n";
-  logBox.scrollTop=logBox.scrollHeight;
-}
-
-function updateUI(){
-  document.getElementById("status").textContent =
-    `Crediti: Tu ${playerCredits} | CPU ∞`;
-  document.getElementById("pot").textContent = `Piatto: ${pot}`;
-}
-
-window.newHand=function(){
-  logBox.textContent="";
-  deck=buildDeck();
-  playerHand=deck.splice(0,5);
-  cpuHand=deck.splice(0,5);
-  pot=0;
-  changeActive=false;
-  playerChanged=false;
-  cpuChanged=false;
-  renderHand(playerHand, playerHandDiv);
-  renderHand(cpuHand, cpuHandDiv, true);
-  log("Nuova mano iniziata");
-  updateUI();
-}
-
-const playerHandDiv=document.getElementById("playerHand");
-const cpuHandDiv=document.getElementById("cpuHand");
-
-playerHandDiv.addEventListener("click",e=>{
-  if(!changeActive) return;
-  if(e.target.classList.contains("card")){
-    e.target.classList.toggle("selected");
-  }
-});
-
-window.changeCards=function(){
-  if(!changeActive){
-    changeActive=true;
-    log("Seleziona fino a 4 carte e premi di nuovo 'Cambia carte'");
-    return;
-  }
-  const selected=[...document.querySelectorAll(".selected")];
-  selected.forEach(img=>{
-    playerHand[img.dataset.index]=deck.pop();
-    img.classList.remove("selected");
-  });
-  playerChanged=true;
-  changeActive=false;
-  log(selected.length ? "Hai cambiato carte" : "Hai mantenuto le carte");
-
-  cpuChange();
-  renderHand(playerHand, playerHandDiv);
-}
-
-function cpuChange(){
-  if(cpuChanged) return;
-  const ev=evaluateHand(cpuHand);
-  if(ev.rank===1){
-    cpuHand[0]=deck.pop();
-    cpuHand[1]=deck.pop();
-    log("CPU cambia carte");
-  }else{
-    log("CPU mantiene le carte");
-  }
-  cpuChanged=true;
-}
-
-window.bet=function(amount){
-  if(playerCredits<amount) return;
-  playerCredits-=amount;
-  pot+=amount;
-  log(`Hai puntato ${amount}`);
-  cpuRespond(amount);
-  updateUI();
-}
-
-window.allIn=function(){
-  bet(playerCredits);
-}
-
-function cpuRespond(amount){
-  const ev=evaluateHand(cpuHand);
-  if(ev.rank>=2){
-    pot+=amount;
-    log(`CPU segue ${amount}`);
-  }else{
-    log("CPU esce");
-    playerCredits+=pot;
-    pot=0;
-    revealCpu();
-    log("VINCI la mano");
-  }
-}
-
-window.showdown=function(){
-  revealCpu();
-  const p=evaluateHand(playerHand);
-  const c=evaluateHand(cpuHand);
-
-  let winner="CPU";
-  if(p.rank>c.rank) winner="TU";
-  else if(p.rank===c.rank){
-    for(let i=0;i<p.tiebreakers.length;i++){
-      if(p.tiebreakers[i]>c.tiebreakers[i]){winner="TU";break;}
-      if(p.tiebreakers[i]<c.tiebreakers[i]){winner="CPU";break;}
+  <script>
+    function start(){
+      localStorage.setItem("cpuDifficulty", difficulty.value);
+      localStorage.setItem("ante", ante.value);
+      location.href="cpu-game.html";
     }
-  }
-
-  if(winner==="TU"){
-    playerCredits+=pot;
-    log("VINCI la mano");
-  }else{
-    log("CPU vince la mano");
-  }
-  pot=0;
-  updateUI();
-}
-
-function revealCpu(){
-  renderHand(cpuHand, cpuHandDiv, false);
-}
-
-newHand();
-</script>
+  </script>
 
 </body>
 </html>
